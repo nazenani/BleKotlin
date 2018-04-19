@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+        <variable name="beacon" type="com.example.nazenani.blekotlin.Beacon" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/is_ibeacon"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{Boolean.toString(beacon.isIbeacon)}" />
+
+        <TextView
+            android:id="@+id/uuid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{beacon.uuid}" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{beacon.address}" />
+
+        <TextView
+            android:id="@+id/rssi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{Integer.toString(beacon.rssi)}" />
+
+        <TextView
+            android:id="@+id/major"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{beacon.major}" />
+
+        <TextView
+            android:id="@+id/minor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{beacon.minor}" />
+
+    </LinearLayout>
+
+</layout>

@@ -4,6 +4,8 @@ apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
 
+apply plugin: 'kotlin-kapt'
+
 android {
     compileSdkVersion 27
     defaultConfig {
@@ -22,6 +24,9 @@ android {
     }
     productFlavors {
     }
+    dataBinding {
+        enabled = true
+    }
 }
 
 dependencies {
@@ -36,22 +41,26 @@ dependencies {
 
     // Coroutine
     def coroutines_version = '0.22.5'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:' + coroutines_version
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:' + coroutines_version
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
 
     // Retrofit2
     def retrofit2_version = '2.4.0'
-    implementation 'com.squareup.retrofit2:retrofit:' + retrofit2_version
-    implementation 'com.squareup.retrofit2:adapter-rxjava2:' + retrofit2_version
-    implementation 'com.squareup.retrofit2:converter-moshi:' + retrofit2_version
+    implementation "com.squareup.retrofit2:retrofit:$retrofit2_version"
+    implementation "com.squareup.retrofit2:adapter-rxjava2:$retrofit2_version"
+    implementation "com.squareup.retrofit2:converter-moshi:$retrofit2_version"
 
     // Moshi
     def moshi_version = '1.5.0'
-    implementation 'com.squareup.moshi:moshi:' + moshi_version
-    implementation 'com.squareup.moshi:moshi-kotlin:' + moshi_version
+    implementation "com.squareup.moshi:moshi:$moshi_version"
+    implementation "com.squareup.moshi:moshi-kotlin:$moshi_version"
 
     implementation group: 'com.squareup.retrofit2', name: 'adapter-rxjava', version: retrofit2_version
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
+
+    // DataBinding
+    def databinding_version = '3.1.1'
+    kapt "com.android.databinding:compiler:$databinding_version"
 }
 
 kotlin {

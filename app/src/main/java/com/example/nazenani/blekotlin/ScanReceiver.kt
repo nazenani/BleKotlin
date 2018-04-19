@@ -1,18 +1,13 @@
 package com.example.nazenani.blekotlin
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.le.BluetoothLeScanner
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.location.Location
 import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.util.Log
 import android.widget.Toast
-import android.support.v4.app.NotificationCompat.getExtras
-
 
 
 class ScanReceiver: BroadcastReceiver() {
@@ -29,6 +24,9 @@ class ScanReceiver: BroadcastReceiver() {
 
             // GPSステータス変更時
             LocationManager.PROVIDERS_CHANGED_ACTION -> locationActionStatusChanged(context, intent)
+
+            // 対象外
+            else -> {}
         }
     }
 
@@ -38,7 +36,7 @@ class ScanReceiver: BroadcastReceiver() {
         var status: Int = intent!!.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
         if (status == BluetoothAdapter.STATE_OFF) {
         }
-        Log.d(this::class.java.name, status.toString())
+        Log.d("Bluetoothステータス変更時", status.toString())
     }
 
 
@@ -51,7 +49,7 @@ class ScanReceiver: BroadcastReceiver() {
         // 変化後の状態を取得
         var currentState: Int = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
 
-        Log.d(this::class.java.name, previousState.toString() + " -> " + currentState.toString())
+        Log.d("Wifiステータス変更時", previousState.toString() + " -> " + currentState.toString())
 
         // 取得できるのは以下の状態
         // WifiManager.WIFI_STATE_DISABLED
@@ -64,11 +62,11 @@ class ScanReceiver: BroadcastReceiver() {
 
     fun locationActionStatusChanged(context: Context?, intent: Intent?) {
         Toast.makeText(context, "GPSステータス変更時", Toast.LENGTH_SHORT).show()
-        //var location = intent!!.getExtras().get(LocationManager.KEY_LOCATION_CHANGED) as Location
 
-        var status: Int = intent!!.getIntExtra(LocationManager.GPS_PROVIDER, -1)
+        var manager: LocationManager = context!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        var status = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
-        Log.d(this::class.java.name, status.toString() + ":" + LocationManager.MODE_CHANGED_ACTION)
+        Log.d("GPSステータス変更時", status.toString())
     }
 
 }

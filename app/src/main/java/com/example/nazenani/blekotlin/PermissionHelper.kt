@@ -13,6 +13,7 @@ interface PermissionHelper: ActivityCompat.OnRequestPermissionsResultCallback {
     val message: String?
     val caption: String?
     val REQUEST_CODE: Int
+    //val PERMISSION: Array<String>
     val PERMISSION: String
 
     fun execute(activity: Activity) {
