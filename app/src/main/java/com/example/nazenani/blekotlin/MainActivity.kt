@@ -23,9 +23,11 @@ import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ListView
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import com.example.nazenani.blekotlin.databinding.ItemBinding
+import kotlinx.android.synthetic.main.content_main.*
 
 
 class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
@@ -46,6 +48,10 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private var mBluetoothManager: BluetoothManager? = null
 
     private var mScanFlag: Boolean = false
+
+    private var beaconList: MutableList<Beacon>? = null
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +85,8 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         fab.setOnClickListener { view ->
             //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
             //        .setAction("Action", null).show()
+
+
             // ブルートゥースをスキャン
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 Log.d(TAG, "API level 21 以上:" + mScanFlag.toString())
@@ -100,6 +108,31 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
                     mScanFlag = true
                 }
             }
+
+
+/*
+            // TODO サンプル
+            val beaconList = mutableListOf<Beacon>()
+            for (i in 0..100) {
+                beaconList.add(Beacon(
+                        isIbeacon = true,
+                        uuid = "uuid$i",
+                        address = "address$i",
+                        rssi = i,
+                        major = "major$i",
+                        minor = "minor$i"
+                ))
+            }
+            val beaconGroup = BeaconGroup(beacons = beaconList)
+            list_view.adapter = ListBindingAdapter(this, beaconGroup)
+*/
+
+
+
+            beaconList = mutableListOf<Beacon>()
+
+
+
         }
 
         mBleScanCallback?.listener = this
@@ -194,13 +227,33 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
      * インターフェイスリスナー
      */
     override fun find(isIbeacon: Boolean, proximityUuid: String, address: String, rssi: Int, major: String, minor: String) {
-        val beacon: Beacon = Beacon(isIbeacon = isIbeacon, uuid = proximityUuid, address = address, rssi = rssi, major = major, minor = minor)
-        val mainActivityBinding: ItemBinding = DataBindingUtil.setContentView<ItemBinding>(this, R.layout.item)
-        mainActivityBinding.beacon = beacon
+        //val beacon: Beacon = Beacon(isIbeacon = isIbeacon, uuid = proximityUuid, address = address, rssi = rssi, major = major, minor = minor)
+        //val mainActivityBinding: ItemBinding = DataBindingUtil.setContentView<ItemBinding>(this, R.layout.item)
+        //mainActivityBinding.beacon = beacon
+
+
+
+        //val beaconList = mutableListOf<Beacon>()
+        //for (i in 0..100) {
+            beaconList?.add(Beacon(
+                    isIbeacon = isIbeacon,
+                    uuid = proximityUuid,
+                    address = address,
+                    rssi = rssi,
+                    major = major,
+                    minor = minor
+            ))
+        //}
+        val beaconGroup = BeaconGroup(beacons = beaconList!!)
+        list_view.adapter = ListBindingAdapter(this, beaconGroup)
+
+
     }
 
 
-
+    /**
+     * API Level 21 以上用コールバック関数
+     */
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     class BleScanCallback(resultMap: MutableMap<String?, BluetoothDevice?>) : ScanCallback() {
 
@@ -252,6 +305,9 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     }
 
 
+    /**
+     * API Level 21 未満用コールバック関数
+     */
     class OldBleScanCallback(resultMap: MutableMap<String?, BluetoothDevice?>) : BluetoothAdapter.LeScanCallback {
 
         var resultOfScan = resultMap
@@ -262,6 +318,19 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         }
 
     }
+
+
+    /**
+     * サンプル
+     */
+    class BeaconGroup(private val beacons: List<Beacon>) {
+        val count: Int = beacons.count()
+
+        fun beaconAt(index: Int): Beacon {
+            return beacons[index]
+        }
+    }
+
 
 }
 
