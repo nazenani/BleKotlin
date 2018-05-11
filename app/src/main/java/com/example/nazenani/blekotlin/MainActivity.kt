@@ -1,34 +1,30 @@
 package com.example.nazenani.blekotlin
 
 import android.Manifest
-import android.annotation.TargetApi
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.databinding.DataBindingUtil
 import android.location.LocationManager
 import android.net.Uri
 import android.net.wifi.WifiManager
-import android.os.Build
 import android.os.Bundle
-import android.support.design.widget.Snackbar
 import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.ListView
+import android.view.View
+import android.view.animation.AlphaAnimation
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
-import com.example.nazenani.blekotlin.databinding.ItemBinding
 import kotlinx.android.synthetic.main.content_main.*
 
+/**
+ * BEACONの仕様について下記を参考
+ * TODO https://www.gaprot.jp/pickup/ibeacon/abeacon
+ * TODO https://qiita.com/TakahikoKawasaki/items/a2062147b5fa82abc0b3
+ */
 
 class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private val TAG: String = this::class.java.name
@@ -42,14 +38,10 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private var mBtAdapter: BluetoothAdapter? = null;
     private var mBroadcastReceiver: LocalBroadcastManager? = null;
 
-    private var mScanResults: MutableMap<String?, BluetoothDevice?>? = null
-    private var mBleScanCallback: BleScanCallback? = null
-    private var mOldBleScanCallback: BluetoothAdapter.LeScanCallback? = null
-    private var mBluetoothManager: BluetoothManager? = null
-
     private var mScanFlag: Boolean = false
 
-    private var beaconList: MutableList<Beacon>? = null
+    private var mBeaconList: MutableList<Beacon>? = null
+    private var mListBindingAdapter: ListBindingAdapter? = null
 
 
 
@@ -67,14 +59,29 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         // BluetoothAdapterインスタンス取得
         mBtAdapter = BluetoothAdapter.getDefaultAdapter()
 
-        // Bluetoothを有効にする
+        // Bluetoothが有効か判定
         if (!mBtAdapter?.isEnabled!!) {
-            mBtAdapter?.enable()
-        }
 
-        mScanResults = mutableMapOf()
-        mBleScanCallback = BleScanCallback(mScanResults!!)
-        mOldBleScanCallback = OldBleScanCallback(mScanResults!!)
+            // フェードインアニメーション
+            val alphaAnimation: AlphaAnimation = AlphaAnimation(0f, 1f)
+            // 表示時間を指定
+            alphaAnimation.duration = 1000
+            alphaAnimation.fillAfter = true
+            // 実行
+            button.startAnimation(alphaAnimation)
+
+            // Bluetoothを有効にする
+            button.setOnClickListener { view ->
+                mBtAdapter?.enable()
+
+                // アニメーション起動中に非表示にするとレイアウトが崩れるのでアニメーションを止める
+                alphaAnimation.cancel()
+                button.visibility = View.GONE
+            }
+
+        } else {
+            button.visibility = View.GONE
+        }
 
         // ペアリング済みデバイス一覧を取得
         //var devices: Set<BluetoothDevice> = mBtAdapter?.bondedDevices!!
@@ -82,61 +89,32 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
             //Log.d(TAG, "Device : " + device.name + "(" + device.bondState + ")(" + device.address + ")")
         //}
 
+
+        val bluetoothScanHelper =  BluetooshScanHelper(this, this)
+
         fab.setOnClickListener { view ->
+
             //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
             //        .setAction("Action", null).show()
 
-
             // ブルートゥースをスキャン
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Log.d(TAG, "API level 21 以上:" + mScanFlag.toString())
-                if (mScanFlag) {
-                    mBtAdapter?.bluetoothLeScanner?.stopScan(mBleScanCallback)
-                    mScanFlag = false
-                } else {
-                    mBtAdapter?.bluetoothLeScanner?.startScan(mBleScanCallback)
-                    mScanFlag = true
-                }
+            if (mScanFlag) {
+                bluetoothScanHelper.stopScan()
+                mScanFlag = false
             } else {
-                Log.d(TAG, "API level 21 未満:" + mScanFlag.toString())
-                mBluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                if (mScanFlag) {
-                    mBluetoothManager!!.adapter.stopLeScan(mOldBleScanCallback)
-                    mScanFlag = false
-                } else {
-                    mBluetoothManager!!.adapter.startLeScan(mOldBleScanCallback)
-                    mScanFlag = true
-                }
+                bluetoothScanHelper.startScan()
+                mScanFlag = true
             }
-
-
-/*
-            // TODO サンプル
-            val beaconList = mutableListOf<Beacon>()
-            for (i in 0..100) {
-                beaconList.add(Beacon(
-                        isIbeacon = true,
-                        uuid = "uuid$i",
-                        address = "address$i",
-                        rssi = i,
-                        major = "major$i",
-                        minor = "minor$i"
-                ))
-            }
-            val beaconGroup = BeaconGroup(beacons = beaconList)
-            list_view.adapter = ListBindingAdapter(this, beaconGroup)
-*/
-
-
-
-            beaconList = mutableListOf<Beacon>()
-
-
 
         }
 
-        mBleScanCallback?.listener = this
 
+        // 更新可能なミュータブルリストを初期化
+        mBeaconList = mutableListOf<Beacon>()
+
+        // リストビュー表示用アダプタを初期化
+        mListBindingAdapter = ListBindingAdapter(this, mBeaconList)
+        list_view.adapter = mListBindingAdapter
     }
 
 
@@ -215,9 +193,9 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
      */
     override fun onDenied() {
         // 許可が得られなければアプリ設定へ誘導
-        var intent: Intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        val intent: Intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
         // Fragmentの場合はgetContext().getPackageName()
-        var uri: Uri = Uri.fromParts("package", packageName, null)
+        val uri: Uri = Uri.fromParts("package", packageName, null)
         intent.data = uri
         startActivity(intent)
     }
@@ -226,111 +204,39 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     /**
      * インターフェイスリスナー
      */
-    override fun find(isIbeacon: Boolean, proximityUuid: String, address: String, rssi: Int, major: String, minor: String) {
+    override fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String) {
         //val beacon: Beacon = Beacon(isIbeacon = isIbeacon, uuid = proximityUuid, address = address, rssi = rssi, major = major, minor = minor)
         //val mainActivityBinding: ItemBinding = DataBindingUtil.setContentView<ItemBinding>(this, R.layout.item)
         //mainActivityBinding.beacon = beacon
 
-
-
-        //val beaconList = mutableListOf<Beacon>()
-        //for (i in 0..100) {
-            beaconList?.add(Beacon(
-                    isIbeacon = isIbeacon,
-                    uuid = proximityUuid,
-                    address = address,
-                    rssi = rssi,
-                    major = major,
-                    minor = minor
-            ))
-        //}
-        val beaconGroup = BeaconGroup(beacons = beaconList!!)
-        list_view.adapter = ListBindingAdapter(this, beaconGroup)
-
-
-    }
-
-
-    /**
-     * API Level 21 以上用コールバック関数
-     */
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    class BleScanCallback(resultMap: MutableMap<String?, BluetoothDevice?>) : ScanCallback() {
-
-        var resultOfScan = resultMap
-        var listener: BeaconListener? = null
-
-        override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            addScanResult(result)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Log.d(this::class.java.name, "I found a ble device ${result?.scanRecord?.bytes} : ${result?.device?.address} : ${result?.rssi}")
+        // キーに対してミュータブルリスト内に同一のアドレスが存在すれば更新
+        var key: Int? = null
+        for ((index, value) in mBeaconList!!.withIndex()) {
+            if (value.address == address) {
+                key = index
+                break
             }
         }
 
-        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-            results?.forEach { result -> addScanResult(result) }
+        // データクラスに値を格納
+        val beacon: Beacon = Beacon(
+                isIbeacon = isIbeacon,
+                uuid = proximityUuid,
+                address = address,
+                rssi = rssi,
+                major = major,
+                minor = minor
+        )
+
+        // キーが存在しなければ追加し、キーが存在すれば更新
+        if (key == null) {
+            mBeaconList?.add(beacon)
+        } else {
+            mBeaconList?.set(key, beacon)
         }
-
-        override fun onScanFailed(errorCode: Int) {
-            Log.d(this::class.java.name, "Bluetooth LE scan failed. Error code: $errorCode")
-        }
-
-        fun addScanResult(scanResult: ScanResult?) {
-            resultOfScan[scanResult?.device?.address] = scanResult?.device
-
-            // スキャンレコードが30バイト以上で6バイト目から9バイト目の値が0x4c000215の場合はiBeaconと判定
-            var isIbeacon = false
-            if (scanResult?.scanRecord?.bytes!!.size >= 30 && scanResult.scanRecord?.bytes!![5] == 0x4c.toByte() && scanResult.scanRecord?.bytes!![6] == 0x00.toByte() && scanResult.scanRecord?.bytes!![7] == 0x02.toByte() && scanResult.scanRecord?.bytes!![8] == 0x15.toByte()) {
-                isIbeacon = true
-            }
-
-            // 0埋めの16進数に変換
-            val proximityUuid: String = arrayOf(
-                                        "${String.format("%02x", scanResult.scanRecord?.bytes!![9])}${String.format("%02x", scanResult.scanRecord?.bytes!![10])}${String.format("%02x", scanResult.scanRecord?.bytes!![11])}${String.format("%02x", scanResult.scanRecord?.bytes!![12])}",
-                                        "${String.format("%02x", scanResult.scanRecord?.bytes!![13])}${String.format("%02x", scanResult.scanRecord?.bytes!![14])}",
-                                        "${String.format("%02x", scanResult.scanRecord?.bytes!![15])}${String.format("%02x", scanResult.scanRecord?.bytes!![16])}",
-                                        "${String.format("%02x", scanResult.scanRecord?.bytes!![17])}${String.format("%02x", scanResult.scanRecord?.bytes!![18])}",
-                                        "${String.format("%02x", scanResult.scanRecord?.bytes!![19])}${String.format("%02x", scanResult.scanRecord?.bytes!![20])}${String.format("%02x", scanResult.scanRecord?.bytes!![21])}${String.format("%02x", scanResult.scanRecord?.bytes!![22])}${String.format("%02x", scanResult.scanRecord?.bytes!![23])}${String.format("%02x", scanResult.scanRecord?.bytes!![24])}"
-                                    ).joinToString("-").toUpperCase()
-
-            // メジャー値とマイナー値を取得
-            val major: String = String.format("%02x", scanResult.scanRecord?.bytes!![25]) + String.format("%02x", scanResult.scanRecord?.bytes!![26])
-            val minor: String = String.format("%02x", scanResult.scanRecord?.bytes!![27]) + String.format("%02x", scanResult.scanRecord?.bytes!![28])
-
-            // インターフェイスのリスナーに登録
-            listener?.find(isIbeacon, proximityUuid, scanResult.device.address, scanResult.rssi, major.toUpperCase(), minor.toUpperCase())
-
-            Log.d("addScanResult", "${isIbeacon}:${scanResult.device.address}:${proximityUuid}:${scanResult.rssi}::${major.toUpperCase()}:${minor.toUpperCase()}")
-        }
+        // アダプタに対してリスト全体を更新
+        mListBindingAdapter!!.notifyDataSetChanged()
     }
-
-
-    /**
-     * API Level 21 未満用コールバック関数
-     */
-    class OldBleScanCallback(resultMap: MutableMap<String?, BluetoothDevice?>) : BluetoothAdapter.LeScanCallback {
-
-        var resultOfScan = resultMap
-
-        override fun onLeScan(device: BluetoothDevice, rssi: Int, bytes: ByteArray) {
-            Log.d(this::class.java.name, device.name + "(" + device.address + ")" + ":" + rssi + ":" + bytes)
-            resultOfScan[device.address] = device
-        }
-
-    }
-
-
-    /**
-     * サンプル
-     */
-    class BeaconGroup(private val beacons: List<Beacon>) {
-        val count: Int = beacons.count()
-
-        fun beaconAt(index: Int): Beacon {
-            return beacons[index]
-        }
-    }
-
 
 }
 
@@ -339,5 +245,5 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
  * インターフェイス
  */
 interface BeaconListener {
-    fun find(isIbeacon: Boolean, proximityUuid: String, address: String, rssi: Int, major: String, minor: String)
+    fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String)
 }
