@@ -15,6 +15,7 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
     }
     buildTypes {
         release {
@@ -61,6 +62,10 @@ dependencies {
     // DataBinding
     def databinding_version = '3.1.2'
     kapt "com.android.databinding:compiler:$databinding_version"
+
+    // MultiDex対策
+    implementation 'com.android.support:multidex:1.0.3'
+
 }
 
 kotlin {

@@ -7,10 +7,11 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import com.example.nazenani.blekotlin.databinding.ItemBinding
 
-// class ListBindingAdapter(val context: Context, val beaconGroup: MainActivity.BeaconGroup): BaseAdapter() {
+/**
+ * Beaconデータクラスを使用したアダプタ
+ */
 class ListBindingAdapter(val context: Context, val beaconGroup: MutableList<Beacon>?): BaseAdapter() {
     var inflater: LayoutInflater
-    //val beacons: MainActivity.BeaconGroup = beaconGroup
 
 
     init {
@@ -19,7 +20,6 @@ class ListBindingAdapter(val context: Context, val beaconGroup: MutableList<Beac
 
 
     override fun getCount(): Int {
-        //return beaconGroup.count
         return beaconGroup!!.size
     }
 
@@ -39,7 +39,6 @@ class ListBindingAdapter(val context: Context, val beaconGroup: MutableList<Beac
 
     override fun getItem(position: Int): Any? {
         return beaconGroup!![position]
-        //return beaconGroup.beaconAt(position)
     }
 
 

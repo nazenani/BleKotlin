@@ -16,7 +16,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="IBEACON->" />
+                    android:text="IBEACON -> " />
                 <TextView
                     android:id="@+id/is_ibeacon"
                     android:layout_width="match_parent"
@@ -30,7 +30,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ADDRESS->" />
+                    android:text="ADDRESS -> " />
                 <TextView
                     android:id="@+id/address"
                     android:layout_width="match_parent"
@@ -44,7 +44,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="RSSI->" />
+                    android:text="RSSI -> " />
                 <TextView
                     android:id="@+id/rssi"
                     android:layout_width="match_parent"
@@ -58,11 +58,12 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="UUID->" />
+                    android:text="UUID -> " />
                 <TextView
                     android:id="@+id/uuid"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:textSize="12sp"
                     android:text="@{beacon.uuid}" />
             </TableRow>
 
@@ -72,7 +73,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MAJOR->" />
+                    android:text="MAJOR -> " />
                 <TextView
                     android:id="@+id/major"
                     android:layout_width="wrap_content"
@@ -86,12 +87,26 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MINOR->" />
+                    android:text="MINOR -> " />
                 <TextView
                     android:id="@+id/minor"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@{beacon.minor}" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DISTANCE -> " />
+                <TextView
+                    android:id="@+id/distance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@{Double.toString(beacon.distance)}" />
             </TableRow>
 
         </TableLayout>

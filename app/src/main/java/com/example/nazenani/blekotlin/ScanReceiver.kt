@@ -9,7 +9,9 @@ import android.net.wifi.WifiManager
 import android.util.Log
 import android.widget.Toast
 
-
+/**
+ * ブロードキャストレシーバを使用してステータスを監視
+ */
 class ScanReceiver: BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
 
@@ -31,23 +33,25 @@ class ScanReceiver: BroadcastReceiver() {
     }
 
 
-    fun bluetoothActionStatusChanged(context: Context?, intent: Intent?) {
-        Toast.makeText(context, "Bluetoothステータス変更時", Toast.LENGTH_SHORT).show()
-        var status: Int = intent!!.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+    private fun bluetoothActionStatusChanged(context: Context?, intent: Intent?) {
+         // Toast.makeText(context, "Bluetoothステータス変更時", Toast.LENGTH_SHORT).show()
+
+        val status: Int = intent!!.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
         if (status == BluetoothAdapter.STATE_OFF) {
         }
+
         Log.d("Bluetoothステータス変更時", status.toString())
     }
 
 
-    fun wifiActionStatusChanged(context: Context?, intent: Intent?) {
-        Toast.makeText(context, "Wifiステータス変更時", Toast.LENGTH_SHORT).show()
+    private fun wifiActionStatusChanged(context: Context?, intent: Intent?) {
+        // Toast.makeText(context, "Wifiステータス変更時", Toast.LENGTH_SHORT).show()
 
         // 変化前の状態を取得
-        var previousState: Int = intent!!.getIntExtra(WifiManager.EXTRA_PREVIOUS_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN);
+        val previousState: Int = intent!!.getIntExtra(WifiManager.EXTRA_PREVIOUS_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
 
         // 変化後の状態を取得
-        var currentState: Int = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
+        val currentState: Int = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
 
         Log.d("Wifiステータス変更時", previousState.toString() + " -> " + currentState.toString())
 
@@ -60,11 +64,11 @@ class ScanReceiver: BroadcastReceiver() {
     }
 
 
-    fun locationActionStatusChanged(context: Context?, intent: Intent?) {
-        Toast.makeText(context, "GPSステータス変更時", Toast.LENGTH_SHORT).show()
+    private fun locationActionStatusChanged(context: Context?, intent: Intent?) {
+        // Toast.makeText(context, "GPSステータス変更時", Toast.LENGTH_SHORT).show()
 
-        var manager: LocationManager = context!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        var status = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val manager: LocationManager = context!!.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val status = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
         Log.d("GPSステータス変更時", status.toString())
     }

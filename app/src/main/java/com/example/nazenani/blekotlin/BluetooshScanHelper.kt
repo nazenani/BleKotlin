@@ -9,6 +9,8 @@ import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import java.lang.Math
+import kotlin.experimental.and
 
 class BluetooshScanHelper(context: Context, listener: BeaconListener) {
     private val TAG: String = this::class.java.name
@@ -22,25 +24,27 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
     private var mOldBleScanCallback: OldBleScanCallback? = null
 
     init {
+        // API LEVEL 21 以上の場合
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             mBleAdapter = BluetoothAdapter.getDefaultAdapter()
             mBleScanCallback = BleScanCallback(this)
+        // API LEVEL 21 未満の場合
         } else {
             mBluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             mOldBleScanCallback = OldBleScanCallback(this)
         }
 
+        // リスナーを登録
         mListener = listener
-
     }
 
 
     fun startScan() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Log.d(TAG, "API level 21 以上")
+            Log.d(TAG, "API level 21 以上: START")
             mBleAdapter?.bluetoothLeScanner?.startScan(mBleScanCallback)
         } else {
-            Log.d(TAG, "API level 21 未満")
+            Log.d(TAG, "API level 21 未満: START")
             mBluetoothManager!!.adapter.startLeScan(mOldBleScanCallback)
         }
     }
@@ -48,10 +52,10 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
 
     fun stopScan() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Log.d(TAG, "API level 21 以上")
+            Log.d(TAG, "API level 21 以上: STOP")
             mBleAdapter?.bluetoothLeScanner?.stopScan(mBleScanCallback)
         } else {
-            Log.d(TAG, "API level 21 未満")
+            Log.d(TAG, "API level 21 未満: STOP")
             mBluetoothManager!!.adapter.stopLeScan(mOldBleScanCallback)
         }
     }
@@ -60,19 +64,21 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
     private fun format(device: BluetoothDevice?, rssi: Int?, bytes: ByteArray?) {
 
         if (device == null || rssi == null || bytes == null) {
-            Log.d(TAG, "Something errors : ${device} : ${rssi} : ${bytes}")
+            Log.d(TAG, "Something errors... : ${device} : ${rssi} : ${bytes}")
             return
         }
 
         // スキャンレコードが30バイト以上で6バイト目から9バイト目の値が0x4c000215の場合はiBeaconと判定
         var isIbeacon = false
-        var proximityUuid: String = "";
-        var major: String = "";
-        var minor: String = "";
+        var proximityUuid: String = ""
+        var major: String = ""
+        var minor: String = ""
+        var distance: Double = 0.0
 
+        // IBeaconを判定
         if (bytes.size >= 30 && bytes[5] == 0x4c.toByte() && bytes[6] == 0x00.toByte() && bytes[7] == 0x02.toByte() && bytes[8] == 0x15.toByte()) {
-            isIbeacon = true
 
+            isIbeacon = true
             // 0埋めの16進数に変換
             proximityUuid = arrayOf(
                     "${String.format("%02x", bytes[9])}${String.format("%02x", bytes[10])}${String.format("%02x", bytes[11])}${String.format("%02x", bytes[12])}",
@@ -85,12 +91,18 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
             // メジャー値とマイナー値を取得
             major = String.format("%02x", bytes[25]) + String.format("%02x", bytes[26])
             minor = String.format("%02x", bytes[27]) + String.format("%02x", bytes[28])
+
+            // 送信出力を推定
+            //val txPower: Int = (bytes[29] and 0xff.toByte()) - 256
+            val txPower: Int = (bytes[29] and 0xff.toByte()).toInt()
+            // パワー計算（推定距離：メートル）
+            distance = Math.pow(10.0, (txPower - rssi) / (10.0 * 2.0))
         }
 
         // インターフェイスのリスナーに登録
-        mListener?.find(isIbeacon, device.address, rssi, proximityUuid, major.toUpperCase(), minor.toUpperCase())
+        mListener?.find(isIbeacon, device.address, rssi, proximityUuid, major.toUpperCase(), minor.toUpperCase(), distance)
 
-        Log.d("addScanResult", "${isIbeacon}:${device.address}:${rssi}:$proximityUuid:${major.toUpperCase()}:${minor.toUpperCase()}")
+        Log.d("addScanResult", "${isIbeacon}:${device.address}:${rssi}:$proximityUuid:${major.toUpperCase()}:${minor.toUpperCase()}:${distance}")
 
     }
 
@@ -101,7 +113,7 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     class BleScanCallback(bluetoothScanHelper: BluetooshScanHelper) : ScanCallback() {
 
-        val mBluetooshScanHelper: BluetooshScanHelper = bluetoothScanHelper
+        val mBluetoothScanHelper: BluetooshScanHelper = bluetoothScanHelper
 
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             addScanResult(result)
@@ -118,9 +130,8 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
             Log.d(this::class.java.name, "Bluetooth LE scan failed. Error code: $errorCode")
         }
 
-        fun addScanResult(scanResult: ScanResult?) {
-            mBluetooshScanHelper.format(null, null, null)
-//            mBluetooshScanHelper.format(scanResult?.device, scanResult?.rssi, scanResult?.scanRecord?.bytes)
+        private fun addScanResult(scanResult: ScanResult?) {
+            mBluetoothScanHelper.format(scanResult?.device, scanResult?.rssi, scanResult?.scanRecord?.bytes)
         }
 
     }
@@ -131,10 +142,10 @@ class BluetooshScanHelper(context: Context, listener: BeaconListener) {
      */
     class OldBleScanCallback(bluetooshScanHelper: BluetooshScanHelper) : BluetoothAdapter.LeScanCallback {
 
-        val mBluetooshScanHelper: BluetooshScanHelper = bluetooshScanHelper
+        val mBluetoothScanHelper: BluetooshScanHelper = bluetooshScanHelper
 
         override fun onLeScan(device: BluetoothDevice, rssi: Int, bytes: ByteArray) {
-            mBluetooshScanHelper.format(device, rssi, bytes)
+            mBluetoothScanHelper.format(device, rssi, bytes)
         }
 
     }

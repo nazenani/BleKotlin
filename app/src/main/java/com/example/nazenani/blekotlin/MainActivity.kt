@@ -29,11 +29,12 @@ import kotlinx.android.synthetic.main.content_main.*
 class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private val TAG: String = this::class.java.name
 
-    override val message: String? get() = "許可が得られなかったので使用できません"
-    override val caption: String? get() = "NG"
-    override val REQUEST_CODE: Int get() = 1
-    //override val PERMISSION: Array<String> get() = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-    override val PERMISSION: String get() = Manifest.permission.ACCESS_FINE_LOCATION
+    // TODO 許可を求める処理を複数可にする
+
+    override val message: String? get() = null
+    override val caption: String? get() = null
+    override val REQUEST_CODE: Int get() = 101
+    override val PERMISSIONS: Array<String> get() = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
     private var mBtAdapter: BluetoothAdapter? = null;
     private var mBroadcastReceiver: LocalBroadcastManager? = null;
@@ -122,7 +123,7 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         Log.d(TAG, "onResume")
 
         // パーミッション判定
-        execute(this)
+        requests(this)
 
         // フィルタの追加
         val filter: IntentFilter = IntentFilter()
@@ -204,7 +205,7 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     /**
      * インターフェイスリスナー
      */
-    override fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String) {
+    override fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String, distance: Double) {
         //val beacon: Beacon = Beacon(isIbeacon = isIbeacon, uuid = proximityUuid, address = address, rssi = rssi, major = major, minor = minor)
         //val mainActivityBinding: ItemBinding = DataBindingUtil.setContentView<ItemBinding>(this, R.layout.item)
         //mainActivityBinding.beacon = beacon
@@ -220,12 +221,13 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
 
         // データクラスに値を格納
         val beacon: Beacon = Beacon(
-                isIbeacon = isIbeacon,
-                uuid = proximityUuid,
-                address = address,
-                rssi = rssi,
-                major = major,
-                minor = minor
+            isIbeacon = isIbeacon,
+            uuid = proximityUuid,
+            address = address,
+            rssi = rssi,
+            major = major,
+            minor = minor,
+            distance = distance
         )
 
         // キーが存在しなければ追加し、キーが存在すれば更新
@@ -236,6 +238,7 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         }
         // アダプタに対してリスト全体を更新
         mListBindingAdapter!!.notifyDataSetChanged()
+        Log.d("TAG", list_view.count.toString())
     }
 
 }
@@ -245,5 +248,5 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
  * インターフェイス
  */
 interface BeaconListener {
-    fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String)
+    fun find(isIbeacon: Boolean, address: String, rssi: Int, proximityUuid: String, major: String, minor: String, distance: Double)
 }
