@@ -2,13 +2,18 @@ package com.example.nazenani.blekotlin
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
+import android.content.ContentValues
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.location.LocationManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.support.v4.content.ContextCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -19,6 +24,9 @@ import android.view.animation.AlphaAnimation
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
+import org.jetbrains.anko.db.INTEGER
+import org.jetbrains.anko.db.insert
+
 
 /**
  * BEACONの仕様について下記を参考
@@ -29,8 +37,6 @@ import kotlinx.android.synthetic.main.content_main.*
 class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private val TAG: String = this::class.java.name
 
-    // TODO 許可を求める処理を複数可にする
-
     override val message: String? get() = null
     override val caption: String? get() = null
     override val REQUEST_CODE: Int get() = 101
@@ -39,11 +45,8 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
     private var mBtAdapter: BluetoothAdapter? = null;
     private var mBroadcastReceiver: LocalBroadcastManager? = null;
 
-    private var mScanFlag: Boolean = false
-
     private var mBeaconList: MutableList<Beacon>? = null
     private var mListBindingAdapter: ListBindingAdapter? = null
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,28 +87,32 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
             button.visibility = View.GONE
         }
 
-        // ペアリング済みデバイス一覧を取得
-        //var devices: Set<BluetoothDevice> = mBtAdapter?.bondedDevices!!
-        //for (device: BluetoothDevice in devices) {
-            //Log.d(TAG, "Device : " + device.name + "(" + device.bondState + ")(" + device.address + ")")
-        //}
-
-
         val bluetoothScanHelper =  BluetooshScanHelper(this, this)
 
         fab.setOnClickListener { view ->
 
+            // ボタン制御を開始
+            //fab.isClickable = false
+            fab.isEnabled = false
+            fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorAlpha))
+
+            // SQLiteヘルパーを生成
+            //mDbHelper = SqliteDatabaseOpenHelper.getInstance(this);
+
+            // ブルートゥーススキャンを開始
+            bluetoothScanHelper.startScan()
+
+            Handler(Looper.getMainLooper()).postDelayed(Runnable {
+                // ブルートゥーススキャンを停止
+                bluetoothScanHelper.stopScan()
+
+                // ボタン制御を解除
+                fab.isEnabled = true
+                fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorAccent))
+            }, 30000)
+
             //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
             //        .setAction("Action", null).show()
-
-            // ブルートゥースをスキャン
-            if (mScanFlag) {
-                bluetoothScanHelper.stopScan()
-                mScanFlag = false
-            } else {
-                bluetoothScanHelper.startScan()
-                mScanFlag = true
-            }
 
         }
 
@@ -167,7 +174,10 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.action_settings -> {
+                startActivity(Intent(baseContext, SummaryListActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -221,7 +231,7 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
 
         // データクラスに値を格納
         val beacon: Beacon = Beacon(
-            isIbeacon = isIbeacon,
+            is_ibeacon = isIbeacon,
             uuid = proximityUuid,
             address = address,
             rssi = rssi,
@@ -229,6 +239,23 @@ class MainActivity : AppCompatActivity(), PermissionHelper, BeaconListener {
             minor = minor,
             distance = distance
         )
+
+        // DBテーブルにデータを格納
+        db.use {
+            val type: Int = if (isIbeacon) 1 else 0
+            insert(db.tableName,
+                    "is_ibeacon" to type,
+                    "uuid" to proximityUuid,
+                    "address" to address,
+                    "rssi" to rssi,
+                    "major" to major,
+                    "minor" to minor,
+                    "distance" to distance,
+                    "date" to System.currentTimeMillis() / 1000L
+            )
+        }
+
+
 
         // キーが存在しなければ追加し、キーが存在すれば更新
         if (key == null) {
